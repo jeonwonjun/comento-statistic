@@ -1,4 +1,4 @@
-# 1. 데이터베이스 스키마 (MySQL 8)
+![ERD_comento](https://github.com/user-attachments/assets/9f05766e-170f-4f0e-94dc-62d6d02b4f4b)# 1. 데이터베이스 스키마 (MySQL 8)
 
 ```
 -- 조직(부서)
@@ -56,3 +56,6 @@ INSERT INTO holidays(holiday_date, name) VALUES
   ('2025-09-14', 'Sample Holiday');
 
 ```
+
+## 1-1. ERD
+
