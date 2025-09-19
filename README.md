@@ -58,4 +58,4 @@ INSERT INTO holidays(holiday_date, name) VALUES
 ```
 
 ## 1-1. ERD
-
+![Image](https://github.com/user-attachments/assets/b8c810f7-2012-482f-992e-13f3bc7add70)
