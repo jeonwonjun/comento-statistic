@@ -2,14 +2,19 @@ package com.demo.comentoStatistic.service;
 
 import com.demo.comentoStatistic.dao.StatisticMapper;
 import com.demo.comentoStatistic.dto.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class StatisticService {
 
-    @Autowired
-    StatisticMapper statisticMapper;
+    private final StatisticMapper statisticMapper;
+
+    public StatisticService(StatisticMapper statisticMapper) {
+        this.statisticMapper = statisticMapper;
+    }
+
 
     // 1. 접속자 수 - 연도별 탐색
     public YearCountDto getYearLogins(String year){
@@ -27,7 +32,7 @@ public class StatisticService {
     }
 
     // 3. 접속자 수 - 일자별 탐색
-    public avgDailyUsersInPeriodDto getAvgDailyUsersInPeriodLogins(String startDate, String endDate){
+    public AvgDailyUsersInPeriodDto getAvgDailyUsersInPeriodLogins(String startDate, String endDate){
         return statisticMapper.selectAvgDailyUsersInPeriodLogin(startDate, endDate);
     }
 
@@ -37,7 +42,7 @@ public class StatisticService {
     }
 
     // 5. 부서별 월별 로그인 수
-    public DepartmentMonthDto getDepartmentMonthLogins(String yearMonth){
+    public List<DepartmentMonthDto> getDepartmentMonthLogins(String yearMonth){
         return statisticMapper.selectDepartmentMonthLogin(yearMonth);
     }
 }

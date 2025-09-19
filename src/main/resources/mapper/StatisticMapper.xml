@@ -1,21 +1,83 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-
 <mapper namespace="com.demo.comentoStatistic.dao.StatisticMapper">
 
-    <select id="selectYearLogin" parameterType="string" resultType="YearCountDto">
-        select concat('20', #{year}) as year, count(*) as totCnt
-        from statistic.request_info ri
-        where left(ri.create_date, 2) = #{year};
+    <!-- 1) 연도별 접속자 수: DISTINCT user_id -->
+    <select id="selectYearLogin" resultType="com.demo.comentoStatistic.dto.YearCountDto">
+        SELECT
+        #{year} AS year,
+        COUNT(DISTINCT le.user_id) AS count
+        FROM login_events le
+        WHERE DATE_FORMAT(le.logged_date, '%Y') = #{year}
     </select>
 
-
-    <select id="selectYearMonthLogin" parameterType="string" resultType="YearMonthCountDto">
-        select concat('20', #{yearMonth}) as yearMonth, count(*) as totCnt
-        from statistic.request_info ri
-        where left(ri.create_date, 4) = #{yearMonth};
+    <!-- 2) 월별 접속자 수: DISTINCT user_id -->
+    <select id="selectYearMonthLogin" resultType="com.demo.comentoStatistic.dto.YearMonthCountDto">
+        SELECT
+        #{yearMonth} AS yearMonth,
+        COUNT(DISTINCT le.user_id) AS count
+        FROM login_events le
+        WHERE DATE_FORMAT(le.logged_date, '%Y-%m') = #{yearMonth}
     </select>
+
+    <!-- 3) 일자별 접속자 수: DISTINCT user_id -->
+    <select id="selectYearMonthDayLogin" resultType="com.demo.comentoStatistic.dto.YearMonthDayCountDto">
+        SELECT
+        #{yearMonthDay} AS yearMonthDay,
+        COUNT(DISTINCT le.user_id) AS count
+        FROM login_events le
+        WHERE le.logged_date = #{yearMonthDay}
+    </select>
+
+    <!-- 4) 기간 평균 하루 '고유 사용자 수' -->
+    <!--    day_list CTE로 날짜 생성 후, 날짜별 DISTINCT user_id를 합산/평균 -->
+    <select id="selectAvgDailyUsersInPeriodLogin" resultType="com.demo.comentoStatistic.dto.AvgDailyUsersInPeriodDto">
+        WITH RECURSIVE day_list AS (
+        SELECT CAST(#{startDate} AS DATE) AS d
+        UNION ALL
+        SELECT DATE_ADD(d, INTERVAL 1 DAY) FROM day_list
+        WHERE d <![CDATA[ <= ]]> #{endDate}
+        ), daily AS (
+        SELECT dl.d AS date,
+        COUNT(DISTINCT le.user_id) AS users
+        FROM day_list dl
+        LEFT JOIN login_events le ON le.logged_date = dl.d
+        GROUP BY dl.d
+        )
+        SELECT
+        #{startDate} AS startDate,
+        #{endDate}   AS endDate,
+        ROUND(
+        SUM(users) / NULLIF(SUM(CASE WHEN users > 0 THEN 1 ELSE 0 END), 0)
+        , 2) AS average
+        FROM daily;
+    </select>
+
+    <!-- 5) 휴일 제외 로그인 수(횟수) -->
+    <!--    (주말+공휴일 제외). 고유 사용자 수가 필요하면 COUNT(DISTINCT le.user_id)로 변경 -->
+    <select id="selectBusinessUsersInPeriodLogin" resultType="com.demo.comentoStatistic.dto.BusinessUsersInPeriodDto">
+        SELECT
+        #{startDate} AS startDate,
+        #{endDate} AS endDate,
+        COUNT(*) AS count
+        FROM login_events le
+        WHERE le.logged_date BETWEEN #{startDate} AND #{endDate}
+        AND DAYOFWEEK(le.logged_date) NOT IN (1, 7) -- 1: 일요일, 7: 토요일
+        AND le.logged_date NOT IN (SELECT holiday_date FROM holidays)
+    </select>
+
+    <!-- 6) 부서별 월별 로그인 수 -->
+    <select id="selectDepartmentMonthLogin" resultType="com.demo.comentoStatistic.dto.DepartmentMonthDto">
+        SELECT
+        DATE_FORMAT(le.logged_date, '%Y-%m') AS yearMonth,
+        d.name                               AS deptName,
+        COUNT(*)                              AS count
+        FROM login_events le
+        JOIN departments d ON le.dept_id = d.id
+        WHERE DATE_FORMAT(le.logged_date, '%Y-%m') = #{yearMonth}
+        GROUP BY DATE_FORMAT(le.logged_date, '%Y-%m'), d.name
+        ORDER BY yearMonth, deptName
+    </select>
+
 
 </mapper>
